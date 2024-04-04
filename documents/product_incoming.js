@@ -1,8 +1,11 @@
 import {Bitrix} from '@2bad/bitrix'
+import {Logger} from "../logger/logger.js";
 export class Product_incoming {
     bitrix
+    logger
     constructor(url) {
         this.bitrix = Bitrix(url)
+        this.logger = new Logger()
     }
 
     async addProductsToDocument(documentId, products) {
@@ -18,7 +21,7 @@ export class Product_incoming {
             }).then(res => {
                 return res;
             }).catch(error => {
-                throw new Error(error.message);
+                console.error(this.logger.errorLog("(/robot-add) catalog.document.element.add", error.message))
             });
         });
         return Promise.all(promises)
@@ -26,8 +29,7 @@ export class Product_incoming {
                 return results;
             })
             .catch(error => {
-                console.error(error.message);
-                return ""
+                console.error(this.logger.errorLog("(/robot-add) addProductsToDocument", error.message))
             });
     }
 
@@ -38,15 +40,18 @@ export class Product_incoming {
                 "currency": 'KZT',
                 "responsibleId": '1',
             }
-            const document = await this.bitrix.call("catalog.document.add", { "fields": fields });
+            const document = await this.bitrix.call("catalog.document.add", { "fields": fields }).catch(error => {
+                console.error(this.logger.errorLog("(/robot-add) catalog.document.add", error.message))
+            });
             const documentId = document.result.document.id;
             await this.addProductsToDocument(documentId, products);
-            await this.bitrix.call("catalog.document.conduct", { "id": documentId });
+            await this.bitrix.call("catalog.document.conduct", { "id": documentId }).catch(error => {
+                console.error(this.logger.errorLog("(/robot-add) catalog.document.conduct", error.message))
+            });
 
-            return "Products successfully added to store!";
+            console.log(this.logger.successLog("(/robot-add) writeoffProductsFromStore", "Products successfully added to store!"))
         } catch (error) {
-            console.log("Failed to add products: " + error.message);
-            return ""
+            console.error(this.logger.errorLog("(/robot-add) addProductsToStore", error.message))
         }
     }
 

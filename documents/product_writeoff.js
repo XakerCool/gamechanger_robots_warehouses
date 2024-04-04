@@ -1,9 +1,12 @@
 import {Bitrix} from '@2bad/bitrix'
+import {Logger} from "../logger/logger.js";
 
 export class Product_writeoff {
     bitrix
+    logger
     constructor(url) {
         this.bitrix = Bitrix(url)
+        this.logger = new Logger()
     }
     async addProductsToDocument(documentId, products) {
         const promises = products.map(product => {
@@ -18,7 +21,7 @@ export class Product_writeoff {
             }).then(res => {
                 return res;
             }).catch(error => {
-                throw new Error(error.message);
+                console.error(this.logger.errorLog("(/robot-write-off) catalog.document.element.add", error.message))
             });
         });
         return Promise.all(promises)
@@ -26,8 +29,7 @@ export class Product_writeoff {
                 return results;
             })
             .catch(error => {
-                console.error(error);
-                throw error;
+                console.error(this.logger.errorLog("(/robot-write-off) addProductsToDocument", error.message))
             });
     }
 
@@ -38,14 +40,18 @@ export class Product_writeoff {
                 "currency": 'KZT',
                 "responsibleId": '1',
             }
-            const document = await this.bitrix.call("catalog.document.add", { "fields": fields });
+            const document = await this.bitrix.call("catalog.document.add", { "fields": fields }).catch(error => {
+                console.error(this.logger.errorLog("(/robot-write-off) catalog.document.add", error.message))
+            });
             const documentId = document.result.document.id;
             await this.addProductsToDocument(documentId, products);
-            await this.bitrix.call("catalog.document.confirm", { "id": documentId });
+            await this.bitrix.call("catalog.document.conduct", { "id": documentId }).catch(error => {
+                console.error(this.logger.errorLog("(/robot-write-off) catalog.document.conduct", error.message))
+            });
 
-            return "Products successfully wrote off from store!";
+            console.log(this.logger.successLog("(/robot-write-off) writeoffProductsFromStore", "Products successfully wrote off from store!"))
         } catch (error) {
-            throw new Error("Failed to write off products: " + error.message);
+            console.error(this.logger.errorLog("(/robot-write-off) writeoffProductsFromStore", error.message))
         }
     }
 }
