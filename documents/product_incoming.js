@@ -35,6 +35,10 @@ export class Product_incoming {
 
      async addProductsToStore(products) {
         try {
+            if (!products) {
+                console.error(this.logger.errorLog("(/robot-add) addProductsToStore", "products is null"))
+                return
+            }
             const fields = {
                 "docType": 'S',
                 "currency": 'KZT',

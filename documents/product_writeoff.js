@@ -35,6 +35,11 @@ export class Product_writeoff {
 
     async writeoffProductsFromStore(products) {
         try {
+            if (!products) {
+                console.error(this.logger.errorLog("(/robot-write-off) writeoffProductsFromStore", "products is null"))
+                return
+            }
+            let isError = false
             const fields = {
                 "docType": 'D',
                 "currency": 'KZT',
@@ -47,9 +52,11 @@ export class Product_writeoff {
             await this.addProductsToDocument(documentId, products);
             await this.bitrix.call("catalog.document.conduct", { "id": documentId }).catch(error => {
                 console.error(this.logger.errorLog("(/robot-write-off) catalog.document.conduct", error.message))
+                isError = true
             });
-
-            console.log(this.logger.successLog("(/robot-write-off) writeoffProductsFromStore", "Products successfully wrote off from store!"))
+            if (!isError) {
+                console.log(this.logger.successLog("(/robot-write-off) writeoffProductsFromStore", "Products successfully wrote off from store!"))
+            }
         } catch (error) {
             console.error(this.logger.errorLog("(/robot-write-off) writeoffProductsFromStore", error.message))
         }
